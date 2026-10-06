@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSFiddle u5cs78q0</title>
+
+  <style>
+    
+  </style>
+
+  
+</head>
+<body>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>RNG</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background: #f5f5f5;
+            color: #111;
+
+            font-family: Arial, sans-serif;
+
+            transition:
+                background 0.2s,
+                color 0.2s;
+        }
+
+
+        /* ================================
+           DARK MODE
+        ================================= */
+
+        body.dark {
+            background: #111;
+            color: #eee;
+        }
+
+
+        .container {
+            width: 360px;
+            text-align: center;
+        }
+
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+
+        /* ================================
+           BUTTONS
+        ================================= */
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+
+        button {
+            background: white;
+            color: #111;
+
+            border: 1px solid #ccc;
+            border-radius: 6px;
+
+            padding: 10px 24px;
+
+            font-size: 15px;
+            cursor: pointer;
+
+            transition:
+                background 0.2s,
+                color 0.2s,
+                border-color 0.2s;
+        }
+
+
+        button:hover {
+            background: #f0f0f0;
+        }
+
+
+        body.dark button {
+            background: #1c1c1c;
+            color: #eee;
+            border-color: #444;
+        }
+
+
+        body.dark button:hover {
+            background: #292929;
+        }
+
+
+        /* ================================
+           CARD
+        ================================= */
+
+        .card {
+            margin-top: 20px;
+
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+
+            padding: 25px;
+
+            box-shadow:
+                0 3px 10px rgba(0, 0, 0, 0.06);
+
+            transition:
+                background 0.2s,
+                border-color 0.2s,
+                box-shadow 0.2s;
+        }
+
+
+        body.dark .card {
+            background: #1c1c1c;
+            border-color: #444;
+
+            box-shadow:
+                0 3px 15px rgba(0, 0, 0, 0.3);
+        }
+
+
+        /* ================================
+           IMAGE
+        ================================= */
+
+        .item-image {
+            width: 150px;
+            height: 150px;
+
+            object-fit: contain;
+
+            margin: 0 auto 15px;
+
+            display: none;
+        }
+
+
+        /* ================================
+           TEXT
+        ================================= */
+
+        .item-name {
+            margin: 0 0 8px;
+            font-size: 24px;
+        }
+
+
+        .rarity {
+            font-size: 14px;
+            font-weight: bold;
+
+            text-transform: uppercase;
+            letter-spacing: 1px;
+
+            color: #777;
+        }
+
+
+        .description {
+            margin: 18px 0;
+
+            color: #555;
+            line-height: 1.5;
+        }
+
+
+        body.dark .description {
+            color: #aaa;
+        }
+
+
+        .odds {
+            padding-top: 15px;
+
+            border-top: 1px solid #eee;
+
+            color: #888;
+            font-size: 13px;
+        }
+
+
+        body.dark .odds {
+            border-top-color: #333;
+            color: #888;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>RNG</h1>
+
+
+        <div class="buttons">
+
+            <button onclick="roll()">
+                Roll
+            </button>
+
+            <button onclick="toggleDarkMode()">
+                Dark Mode
+            </button>
+
+        </div>
+
+
+        <div id="card" class="card">
+
+            <img
+                id="itemImage"
+                class="item-image"
+                src=""
+                alt=""
+            >
+
+
+            <h2 id="itemName" class="item-name">
+                ?
+            </h2>
+
+
+            <div id="rarity" class="rarity">
+                Rarity
+            </div>
+
+
+            <p id="description" class="description">
+                Press roll to get an item.
+            </p>
+
+
+            <div id="odds" class="odds">
+                -
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        /*
+        ========================================
+        RARITIES
+        ========================================
+
+        Weight is the percentage out of 100.
+
+        50   = 50%  = 1/2
+        25   = 25%  = 1/4
+        12.5 = 12.5% = 1/8
+        6.25 = 6.25% = 1/16
+        1    = 1%   = 1/100
+
+        Weights do NOT need to add up to 100.
+        */
+
+        const rarities = {
+
+            common: {
+                weight: 50,
+                color: "#888888"
+            },
+
+            uncommon: {
+                weight: 25,
+                color: "#35a854"
+            },
+
+            rare: {
+                weight: 12.5,
+                color: "#3688d8"
+            },
+
+            epic: {
+                weight: 6.25,
+                color: "#9845d8"
+            },
+
+            legendary: {
+                weight: 1,
+                color: "#e39b20"
+            }
+
+        };
+
+
+        /*
+        ========================================
+        ITEMS
+        ========================================
+        */
+
+        const items = [
+
+            {
+                name: "Rock",
+                rarity: "common",
+                description: "Just a rock.",
+                image: "images/rock.png"
+            },
+
+            {
+                name: "Apple",
+                rarity: "common",
+                description: "A perfectly normal apple.",
+                image: "images/apple.png"
+            },
+
+            {
+                name: "Emerald",
+                rarity: "uncommon",
+                description: "A small green gemstone.",
+                image: "images/emerald.png"
+            },
+
+            {
+                name: "Magic Sword",
+                rarity: "epic",
+                description: "A sword filled with mysterious power.",
+                image: "images/magic-sword.png"
+            },
+
+            {
+                name: "Golden Crown",
+                rarity: "legendary",
+                description: "An incredibly rare golden crown.",
+                image: "images/golden-crown.png"
+            }
+
+        ];
+
+
+        /*
+        ========================================
+        SIMPLIFY FRACTION
+        ========================================
+        */
+
+        function getFraction(weight) {
+
+            let numerator = weight;
+            let denominator = 100;
+
+
+            while (
+                !Number.isInteger(numerator) ||
+                !Number.isInteger(denominator)
+            ) {
+
+                numerator *= 10;
+                denominator *= 10;
+
+            }
+
+
+            function gcd(a, b) {
+
+                while (b !== 0) {
+
+                    const temp = b;
+
+                    b = a % b;
+                    a = temp;
+
+                }
+
+                return a;
+
+            }
+
+
+            const divisor =
+                gcd(numerator, denominator);
+
+
+            return `${numerator / divisor}/${denominator / divisor}`;
+
+        }
+
+
+        /*
+        ========================================
+        ROLL
+        ========================================
+        */
+
+        function roll() {
+
+            /*
+            Only use rarities that have items.
+            */
+
+            const activeRarities =
+                Object.keys(rarities).filter(
+                    rarity =>
+                        items.some(
+                            item =>
+                                item.rarity === rarity
+                        )
+                );
+
+
+            if (activeRarities.length === 0) {
+                return;
+            }
+
+
+            /*
+            Calculate total weight.
+            */
+
+            let totalWeight = 0;
+
+            for (const rarity of activeRarities) {
+
+                totalWeight +=
+                    rarities[rarity].weight;
+
+            }
+
+
+            /*
+            Pick random rarity.
+            */
+
+            let random =
+                Math.random() * totalWeight;
+
+            let selectedRarity = null;
+
+
+            for (const rarity of activeRarities) {
+
+                random -=
+                    rarities[rarity].weight;
+
+                if (random < 0) {
+
+                    selectedRarity =
+                        rarity;
+
+                    break;
+
+                }
+
+            }
+
+
+            /*
+            Find items belonging
+            to selected rarity.
+            */
+
+            const possibleItems =
+                items.filter(
+                    item =>
+                        item.rarity ===
+                        selectedRarity
+                );
+
+
+            /*
+            Pick random item.
+            */
+
+            const item =
+                possibleItems[
+                    Math.floor(
+                        Math.random() *
+                        possibleItems.length
+                    )
+                ];
+
+
+            const rarity =
+                rarities[selectedRarity];
+
+
+            /*
+            Update image.
+            */
+
+            const image =
+                document.getElementById(
+                    "itemImage"
+                );
+
+
+            if (item.image) {
+
+                image.src =
+                    item.image;
+
+                image.alt =
+                    item.name;
+
+                image.style.display =
+                    "block";
+
+            } else {
+
+                image.src = "";
+                image.alt = "";
+                image.style.display = "none";
+
+            }
+
+
+            /*
+            Update text.
+            */
+
+            document.getElementById(
+                "itemName"
+            ).textContent =
+                item.name;
+
+
+            document.getElementById(
+                "rarity"
+            ).textContent =
+                selectedRarity;
+
+
+            document.getElementById(
+                "description"
+            ).textContent =
+                item.description;
+
+
+            /*
+            Update odds.
+            */
+
+            document.getElementById(
+                "odds"
+            ).textContent =
+                `${getFraction(rarity.weight)} (${rarity.weight}%)`;
+
+
+            /*
+            Update rarity color.
+            */
+
+            document.getElementById(
+                "rarity"
+            ).style.color =
+                rarity.color;
+
+
+            /*
+            Update card border.
+            */
+
+            document.getElementById(
+                "card"
+            ).style.borderColor =
+                rarity.color;
+
+        }
+
+
+        /*
+        ========================================
+        DARK MODE
+        ========================================
+        */
+
+        function toggleDarkMode() {
+
+            document.body.classList.toggle("dark");
+
+        }
+
+    </script>
+
+</body>
+</html>
+
+  <script>
+    
+  </script>
+</body>
+</html>
